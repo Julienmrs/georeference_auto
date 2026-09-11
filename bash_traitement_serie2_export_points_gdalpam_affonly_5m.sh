@@ -1,0 +1,93 @@
+timestart=$SECONDS
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exes="$ROOT_DIR/OutilsLB"
+conda activate SuperGlue
+cd $ROOT_DIR/Echantillon_jp2_mars2025
+#adresse_outils_superglue="$ROOT_DIR/essai_20232024/"
+adresse_outils_superglue="$ROOT_DIR/OutilsLB/SuperGlue/"
+adresseMNT="$ROOT_DIR/OutilsLB/MNT.tif"
+
+for chantier in `cat liste_chantiers.txt` ; do
+    echo ${chantier} >> $ROOT_DIR/LeonBerard3/journal.txt;
+    echo "NOUVEAU METHODE GDAL PAM AFFONLY" >> $ROOT_DIR/LeonBerard3/journal.txt;
+    date >> $ROOT_DIR/LeonBerard3/journal.txt
+    cd ${chantier}
+    echo "Pre-georeferencement" >> $ROOT_DIR/LeonBerard3/journal.txt
+    mkdir travail_ssech5
+    cd travail_ssech5
+    echo "Travail" >> $ROOT_DIR/LeonBerard3/journal.txt
+    for cliche in `cat ../liste_cliches.txt` ; do
+    	echo ${cliche} >> $ROOT_DIR/LeonBerard3/journal.txt
+    	date >> $ROOT_DIR/LeonBerard3/journal.txt
+	irotbest=0
+	for a in `cat ../travail_ssech10/${cliche}.rotbest.txt` ; do
+	    irotbest=${a}
+	done
+	echo ${irotbest}
+	$ROOT_DIR/OutilsLB/LB.LINUX WarpAffinite  --tfw ../${cliche}.tfw_rot${irotbest} --image ../${cliche}.tif  --image_sortie ${cliche}.tif --pas_sortie 5 
+	gdalbuildvrt BDOrtho.vrt ../BDOrtho.tif 
+	gdaltindex ${cliche}.shp ${cliche}.tif
+	gdalwarp -overwrite -cutline ${cliche}.shp -r average -crop_to_cutline -tr 5 5 -overwrite BDOrtho.vrt ${cliche}.BDOrtho.tif
+	listgeo -tfw ${cliche}.BDOrtho.tif
+	#Methode HIATUS
+	$ROOT_DIR/scripts-fromts/code-hiatus/MethodeAubry.LINUX  ${cliche}.BDOrtho.tif ${cliche}.BDOrtho.kaub --maxlocaux --SigmaInv $ROOT_DIR/scripts-fromts/code-hiatus/SigmaInvAubry.tif --Mu $ROOT_DIR/scripts-fromts/code-hiatus/MuAubry.tif > /dev/null
+	$ROOT_DIR/scripts-fromts/code-hiatus/MethodeAubryAppariement.LINUX Points:Image ${cliche}.BDOrtho.kaub ${cliche}.tif ${cliche}.BDOrtho.-.${cliche}.resultpi  --SigmaInv $ROOT_DIR/scripts-fromts/code-hiatus/SigmaInvAubry.tif --Mu $ROOT_DIR/scripts-fromts/code-hiatus/MuAubry.tif --agarder 0.5 > /dev/null
+	$ROOT_DIR/scripts-fromts/code-hiatus/RANSAC ${cliche}.BDOrtho.-.${cliche}.resultpi ${cliche}.BDOrtho.-.${cliche}.resultpif > /dev/null
+
+	python $ROOT_DIR/OutilsLB/SuperGlue/MetaSuperGlueTer.py ${cliche}.BDOrtho.tif ${cliche}.tif ${cliche}.BDOrtho.-.${cliche}.resultspg
+	$ROOT_DIR/scripts-fromts/code-hiatus/RANSAC ${cliche}.BDOrtho.-.${cliche}.resultspg ${cliche}.BDOrtho.-.${cliche}.resultspgf > /dev/null
+
+	cp ../${cliche}.tif ../${cliche}.warp5m.tif
+	cp ../${cliche}.tfw ../${cliche}.warp5m.tfw
+	python3 $ROOT_DIR/OutilsLB/Creer_PAM_from_im_terr.py ../${cliche}.coordim_rot${irotbest} ../${cliche}.L93.coordL93.txt ../${cliche}.tif.aux.xml
+	#rm ../${cliche}.warp10m.rot*
+	
+	#Methode HIATUS
+	echo "Methode kaub" >> $ROOT_DIR/LeonBerard3/journal.txt
+	$ROOT_DIR/OutilsLB/LB.LINUX CalculTransfo2D:Affinite ${cliche}.BDOrtho.-.${cliche}.resultpif ${cliche}.aff.modelekaub.txt > /dev/null
+	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelekaub.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affkaub.txt
+	$ROOT_DIR/OutilsLB/LB.LINUX WarpHomographie --tfw ${cliche}.modelefinal.affkaub.txt --image ../${cliche}.tif --image_sortie ${cliche}.affkaub.tif --modele_inverse
+	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo:tfw ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelekaub.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affkaub.tfw 
+	python3 $ROOT_DIR/OutilsLB/Creer_PAM_from_im_tfw.py ../${cliche}.coordim_rot0 ${cliche}.modelefinal.affkaub.tfw ${cliche}.modelefinal.affkaub.tif.aux.xml ; #ln -s ../${cliche}.tif ${cliche}.modelefinal.affkaub.tif ; gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 ${cliche}.modelefinal.affkaub.tif ${cliche}.modelefinal.affkaub.tif.vrt ; gdal_translate -co COMPRESS=DEFLATE ${cliche}.modelefinal.affkaub.tif.vrt ${cliche}.modelefinal.affkaub.tif ; rm 
+	
+	#Methode SuperGlue (pour le moment a la main)
+	echo "Methode spg" >> $ROOT_DIR/LeonBerard3/journal.txt
+	#$ROOT_DIR/estimHomog.LINUX ${cliche}.BDOrtho.-.${cliche}.resultspgf > /dev/null ; mv modele.txt ${cliche}.hom.modelespg.txt
+	$ROOT_DIR/OutilsLB/LB.LINUX CalculTransfo2D:Affinite ${cliche}.BDOrtho.-.${cliche}.resultspgf ${cliche}.aff.modelespg.txt > /dev/null
+	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelespg.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affspg.txt	
+	$ROOT_DIR/OutilsLB/LB.LINUX WarpHomographie --tfw ${cliche}.modelefinal.affspg.txt --image ../${cliche}.tif --image_sortie ${cliche}.affspg.tif --modele_inverse
+	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo:tfw ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelespg.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affspg.tfw
+	python3 $ROOT_DIR/OutilsLB/Creer_PAM_from_im_tfw.py ../${cliche}.coordim_rot0 ${cliche}.modelefinal.affspg.tfw ${cliche}.modelefinal.affspg.tif.aux.xml ; #ln -s ../${cliche}.tif ${cliche}.modelefinal.affspg.tif ; gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 ${cliche}.modelefinal.affspg.tif ${cliche}.modelefinal.affspg.tif.vrt ; gdal_translate -co COMPRESS=DEFLATE ${cliche}.modelefinal.affspg.tif.vrt ${cliche}.modelefinal.affspg.tif ; rm 
+
+
+	#Pour export points
+	$ROOT_DIR/OutilsLB/LB.LINUX ScindeResult ${cliche}.BDOrtho.-.${cliche}.resultpif ${cliche}.BDOrtho.ptskaub ${cliche}.ptskaub
+	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueAffinitePts --tfw ${cliche}.BDOrtho.tfw --pts_entree ${cliche}.BDOrtho.ptskaub --pts_sortie ${cliche}.BDOrtho.ptskaub
+	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueAffinitePts --tfw ${cliche}.tfw --pts_entree ${cliche}.ptskaub --pts_sortie ${cliche}.ptstmp
+	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueAffinitePts --tfw ../${cliche}.tfw --pts_entree ${cliche}.ptstmp --pts_sortie ${cliche}.ptstmp --modele_inverse
+
+	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueHomographiePts --tfw ${cliche}.modelefinal.affkaub.txt --pts_entree ${cliche}.ptstmp --pts_sortie ${cliche}.ptsreproj.aff.modelekaub --modele_inverse
+	$ROOT_DIR/OutilsLB/LB.LINUX Txt2GeoJson ${cliche}.ptsreproj.aff.modelekaub ${cliche}.ptsreproj.aff.modelekaub.geojson
+	
+	$ROOT_DIR/OutilsLB/LB.LINUX Txt2GeoJson ${cliche}.BDOrtho.ptskaub ${cliche}.BDOrtho.ptskaub.geojson
+
+
+	#Pour export points
+	$ROOT_DIR/OutilsLB/LB.LINUX ScindeResult ${cliche}.BDOrtho.-.${cliche}.resultspgf ${cliche}.BDOrtho.ptsspg ${cliche}.ptsspg
+	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueAffinitePts --tfw ${cliche}.BDOrtho.tfw --pts_entree ${cliche}.BDOrtho.ptsspg --pts_sortie ${cliche}.BDOrtho.ptsspg
+	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueAffinitePts --tfw ${cliche}.tfw --pts_entree ${cliche}.ptsspg --pts_sortie ${cliche}.ptstmp
+	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueAffinitePts --tfw ../${cliche}.tfw --pts_entree ${cliche}.ptstmp --pts_sortie ${cliche}.ptstmp --modele_inverse
+
+	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueHomographiePts --tfw ${cliche}.modelefinal.affspg.txt --pts_entree ${cliche}.ptstmp --pts_sortie ${cliche}.ptsreproj.aff.modelespg --modele_inverse
+	$ROOT_DIR/OutilsLB/LB.LINUX Txt2GeoJson ${cliche}.ptsreproj.aff.modelespg ${cliche}.ptsreproj.aff.modelespg.geojson	
+
+	$ROOT_DIR/OutilsLB/LB.LINUX Txt2GeoJson ${cliche}.BDOrtho.ptsspg ${cliche}.BDOrtho.ptsspg.geojson
+
+	
+
+    done
+    cd ../
+    cd ../
+done
+echo  "Temps total : $(( SECONDS - timestart )) secondes"
+echo "$(( SECONDS - timestart ))" >> $ROOT_DIR/temps.txt
