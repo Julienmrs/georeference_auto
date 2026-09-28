@@ -1,0 +1,19 @@
+name: ign-pva
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.5
+  - pytorch=2.1.0
+  - cpuonly=2.0
+  - numpy=1.26.0
+  - matplotlib=3.8.0
+  - gdal=3.8.4
+  - geotiff=1.7.3
+  - wget=1.21.4
+  - make=4.4.1
+  - pip=23.3.1
+  - pip:
+      - opencv-python==4.8.1.78
+      - psycopg2-binary==2.9.9
