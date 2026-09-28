@@ -11,10 +11,7 @@ for chantier in `cat liste_chantiers.txt`; do
 	cp ${chantier}/travail_ssech10/${cliche}.modelefinal.affkaub.tif.aux.xml final/${chantier}/${cliche}.tif.aux.xml
 	cp ${chantier}/${cliche}.tif final/${chantier}/${cliche}.tif
 	gdaladdo -r average -ro final/${chantier}/${cliche}.tif 8 16
-	gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 final/${chantier}/${cliche}.tif final/${chantier}/${cliche}.vrt 
-	# etape bis
-	gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 final/${chantier}/${cliche}.tif final/${chantier}/${cliche}_georef.tif 
-	gdaladdo -r average -ro final/${chantier}/${cliche}_georef.tif 8 16
+	gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 final/${chantier}/${cliche}.tif final/${chantier}/${cliche}.vrt
     done
 done
 	
@@ -25,13 +22,9 @@ for chantier in `cat liste_chantiers.txt`; do
     for cliche in `cat ${chantier}/liste_cliches.txt`; do
 	echo ${cliche}
 	cp ${chantier}/travail_ssech10/${cliche}.modelefinal.affspg.tif.aux.xml final_spg/${chantier}/${cliche}.tif.aux.xml
-#	ln -s final/${chantier}/${cliche}.tif final_spg/${chantier}/${cliche}.tif
 	cp final/${chantier}/${cliche}.tif final_spg/${chantier}/${cliche}.tif
 	gdaladdo -r average -ro final_spg/${chantier}/${cliche}.tif 8 16
 	gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 final_spg/${chantier}/${cliche}.tif final_spg/${chantier}/${cliche}.vrt 
-	# etape bis
-	gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 final_spg/${chantier}/${cliche}.tif final_spg/${chantier}/${cliche}_georef.tif 
-	gdaladdo -r average -ro final_spg/${chantier}/${cliche}_georef.tif 8 16
     done
 done
 
@@ -44,12 +37,7 @@ for chantier in `cat liste_chantiers.txt`; do
 	cp ${chantier}/${cliche}.tif.aux.xml initial/${chantier}/${cliche}.tif.aux.xml
 	cp final/${chantier}/${cliche}.tif initial/${chantier}/${cliche}.tif
 	gdaladdo -r average -ro initial/${chantier}/${cliche}.tif 8 16
-	#ln -s final/${chantier}/${cliche}.tif initial/${chantier}/${cliche}.tif
 	gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 initial/${chantier}/${cliche}.tif initial/${chantier}/${cliche}.vrt 
-	# etape bis		
-	gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 initial/${chantier}/${cliche}.tif initial/${chantier}/${cliche}_georef.tif 
-	gdaladdo -r average -ro initial/${chantier}/${cliche}_georef.tif 8 16
-	
     done
 done
 echo  "Temps total : $(( SECONDS - timestart )) secondes"
