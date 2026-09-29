@@ -2,7 +2,7 @@
 
 ## Environnement Conda 
 
-Depuis la racine du dépôt, crée l'environnement une seule fois :
+Depuis la racine du dépôt, on crée l'environnement une seule fois :
 
 ```bash
 conda env create -f environment.yml
@@ -38,7 +38,7 @@ Les versions proviennent de l'environnement SuperGlue existant et des outils GIS
 
 ## Nécessite les archives les fichiers de missions de l'ign
 
-On se sert de fichiers de mission contenant les métadonnées sur les pva l'archives s'appelle initialement `photos-aeriennes-ign-master.zip` le dossier extrait est à placer à la racine du dossier.
+On se sert des fichiers des missions contenant les métadonnées sur les pva l'archives s'appelle initialement `photos-aeriennes-ign-master.zip` le dossier extrait est à placer à la racine du dossier.
 
 ## Comment lancer la pipeline
 
@@ -52,7 +52,7 @@ bash pipeline.sh
 
 La pipeline fonctionne en général, il se peut que des téléchargements ne fonctionnent pas, mais dans ce cas les tests détectent le problème et empêchent que ça impacte la suite.
 
-Il reste des petits choses à effectuer ainsi que des pistes que j'aurai aimé explorer avec plus de temps ou un peu d'encadrements:
+Il reste des petites choses à effectuer ainsi que des pistes que j'aurai aimé explorer avec plus de temps ou un peu d'encadrements:
 
 - Modifier le script pour le traitement à 5m et le script export.
 
