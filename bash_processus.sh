@@ -33,6 +33,10 @@ for chantier in `cat liste_chantiers.txt`; do
     cd ..
 done
 echo "Calcul emprise : $(( SECONDS - timestart2 )) secondes"
+
+echo -n "" > liste_chantiers_ok.txt
+echo -n "" > liste_chantiers_kc.txt
+
 timestart3=$SECONDS
 ##On va maintenant pouvoir telecharger la BDOrtho 
 resolution_souhaitee=10
@@ -44,11 +48,39 @@ for chantier in `cat liste_chantiers.txt`; do
 	echo -n "${i} " >> bash_download_gdal.sh
     done
     echo "-tr ${resolution_souhaitee} ${resolution_souhaitee} -r average BDOrtho.tif" >> bash_download_gdal.sh
-    sh bash_download_gdal.sh
+    
+    dl=0
+    for tentative in 1 2; do
+        sh bash_download_gdal.sh
+        statut=$?
+        # Si ca marche on quitte, sinon on retente
+        if [ $statut -eq 0 ] && [ -s BDOrtho.tif ] && gdalinfo BDOrtho.tif > /dev/null 2>&1; then
+            dl=1
+            break
+        fi
+        echo "Echec BDOrtho pour ${chantier} (tentative ${tentative}, code ${statut})"
+        rm -f BDOrtho.tif
+    done
+
+    if [ $dl -eq 1 ]; then
+        echo "BDOrtho dl pour ${chantier}"
+        echo ${chantier} >> ../liste_chantiers_ok.txt
+    else
+        echo "dl rate BDOrtho pour ${chantier} (code ${statut}) : chantier skip"
+        echo "$(date) : dl BDOrtho ${chantier} (code ${statut})" >> $ROOT_DIR/LeonBerard3/journal.txt
+        echo ${chantier} >> ../liste_chantiers_kc.txt
+    fi
+
     cd ..
 done
 
 echo "Téléchargement BDOrtho : $(( SECONDS - timestart3 )) secondes" >> ../temps.txt
+
+if [ -s liste_chantiers_kc.txt ]; then
+    echo "Chantiers non traites (BDOrtho manquante) :"
+    cat liste_chantiers_kc.txt
+fi
+
 
 # #Pour les MNT, on va plutot travailler a partir de la BDAlti a 25m que l'on aura prealablement stockee quelque part
 # adresse_MNT="$ROOT_DIR/OutilsLB/BDAlti/BDAlti_FranceEntiere_0.tif"

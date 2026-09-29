@@ -34,7 +34,7 @@ fi
 timestart=$SECONDS
 
 mkdir -p "$dossier_de_dl"
-echo -n "" > "${dossier_de_dl}/echec.txt"
+echo -n "" > "${ROOT_DIR}/echec.txt"
 
 while IFS= read -r nom_image; do
     # Ignore les lignes vides
@@ -61,7 +61,7 @@ while IFS= read -r nom_image; do
         echo "  -> OK"
     else
         echo "  -> ÉCHEC"
-        echo "$nom_image" >> "${dossier_de_dl}/echec.txt"
+        echo "$nom_image" >> "${ROOT_DIR}/echec.txt"
     fi
 
 done < "$fichier_a_dl"

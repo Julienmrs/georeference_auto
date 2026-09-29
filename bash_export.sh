@@ -3,7 +3,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd $ROOT_DIR/Echantillon_jp2_mars2025
 
 mkdir final
-for chantier in `cat liste_chantiers.txt`; do
+for chantier in `cat liste_chantiers_ok.txt`; do
     echo ${chantier}
     mkdir final/${chantier}
     for cliche in `cat ${chantier}/liste_cliches.txt`; do
@@ -16,7 +16,7 @@ for chantier in `cat liste_chantiers.txt`; do
 done
 	
 mkdir final_spg
-for chantier in `cat liste_chantiers.txt`; do
+for chantier in `cat liste_chantiers_ok.txt`; do
     echo ${chantier}
     mkdir final_spg/${chantier}
     for cliche in `cat ${chantier}/liste_cliches.txt`; do
@@ -29,7 +29,7 @@ for chantier in `cat liste_chantiers.txt`; do
 done
 
 mkdir initial
-for chantier in `cat liste_chantiers.txt`; do
+for chantier in `cat liste_chantiers_ok.txt`; do
     echo ${chantier}
     mkdir initial/${chantier}
     for cliche in `cat ${chantier}/liste_cliches.txt`; do

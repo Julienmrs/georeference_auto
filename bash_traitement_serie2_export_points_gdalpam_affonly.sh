@@ -1,21 +1,37 @@
 start=$(date +%s)
 ROOT_DIR="$( cd "$(dirname $0)" && pwd )"
+
+# Le chantier a traiter est passe en argument
+chantier="$1"
+if [ -z "${chantier}" ]; then
+    echo "Usage : $0 <nom_du_chantier>"
+    exit 1
+fi
+ 
 exes="$ROOT_DIR/OutilsLB"
-cd "$ROOT_DIR/Echantillon_jp2_mars2025/"
+cd "$ROOT_DIR/Echantillon_jp2_mars2025/${chantier}" || exit 1
+ 
+# Garde-fou si le script est lance seul : la BDOrtho doit exister et etre lisible
+if [ ! -s BDOrtho.tif ] || ! gdalinfo BDOrtho.tif > /dev/null 2>&1; then
+    echo "BDOrtho.tif absente ou invalide pour ${chantier}, arret."
+    exit 1
+fi
+ 
 #adresse_outils_superglue="$ROOT_DIR/essai_20232024/"
 adresse_outils_superglue="$ROOT_DIR/OutilsLB/SuperGlue/"
 adresseMNT="$ROOT_DIR/OutilsLB/MNT.tif"
-for chantier in `cat $ROOT_DIR/Echantillon_jp2_mars2025/liste_chantiers.txt` ; do
-    echo ${chantier} >> $ROOT_DIR/LeonBerard3/journal.txt;
-    echo "NOUVEAU METHODE GDAL PAM AFFONLY" >> $ROOT_DIR/LeonBerard3/journal.txt;
-    date >> $ROOT_DIR/LeonBerard3/journal.txt
-    cd ${chantier}
-    #On fait la liste des cliches en presence deja faite dans le bash_processus.sh
-    echo -n "" > $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt
-    for cliche in IGNF*.tif ; do 
-		# printf '%q\n' $cliche
-		echo ${cliche%.*} >> $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt
-    done ;
+ 
+echo ${chantier} >> $ROOT_DIR/LeonBerard3/journal.txt;
+echo "NOUVEAU METHODE GDAL PAM AFFONLY" >> $ROOT_DIR/LeonBerard3/journal.txt;
+date >> $ROOT_DIR/LeonBerard3/journal.txt
+ 
+#On fait la liste des cliches en presence
+echo -n "" > $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt
+for cliche in IGNF*.tif ; do
+    # printf '%q\n' $cliche
+    echo ${cliche%.*} >> $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt
+done ;
+
 #    cd georefini
     #On utilise le pre-georeferencement
     echo "Pre-georeferencement" >> $ROOT_DIR/LeonBerard3/journal.txt
@@ -44,7 +60,7 @@ for chantier in `cat $ROOT_DIR/Echantillon_jp2_mars2025/liste_chantiers.txt` ; d
     mkdir travail_ssech10
     cd travail_ssech10
     echo "Travail" >> "$ROOT_DIR/LeonBerard3/journal.txt"
-    for cliche in `cat $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt` ; do
+for cliche in `cat $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt` ; do
     	echo ${cliche} >> $ROOT_DIR/LeonBerard3/journal.txt
     	date >> $ROOT_DIR/LeonBerard3/journal.txt
 	#listgeo -tfw ${cliche}.tif
@@ -129,10 +145,8 @@ for chantier in `cat $ROOT_DIR/Echantillon_jp2_mars2025/liste_chantiers.txt` ; d
 
 	
 
-    done
-    cd ../
-    cd ../
 done
+
 
 end=$(date +%s)
 echo "Temps écoulé : $((end - start)) s"
