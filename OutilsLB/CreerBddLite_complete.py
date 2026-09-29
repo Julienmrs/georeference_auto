@@ -3,7 +3,7 @@ import json
 import sqlite3
 import sys
 import time
-#python3 ./OutilsLB/CreerBddLite.py ./photos-aeriennes-ign-master/data/pva index_pva.db
+#python3 ./OutilsLB/CreerBddLite_complete.py ./photos-aeriennes-ign-master/data/pva index_pva.db
 # Juste pour savoir le temps qu'on prend
 time_ini = time.time()
 if len(sys.argv) != 3:
