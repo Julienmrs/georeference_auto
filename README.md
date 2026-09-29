@@ -40,7 +40,13 @@ Les versions proviennent de l'environnement SuperGlue existant et des outils GIS
 
 On se sert des fichiers des missions contenant les métadonnées sur les pva l'archives s'appelle initialement `photos-aeriennes-ign-master.zip` le dossier extrait est à placer à la racine du dossier.
 
-## Comment lancer la pipeline
+## Comment lancer 
+
+Créer la BDD avec la commande ci-dessous en étant à la racine du projet. Il est possible d’en créer une plus claire, en utilisant les métadonnées présentes dans les fichiers properties et en les répartissant dans des colonnes précises via `CreerBddLite_complete.py` , mais celle-ci est suffisante et est celle utilisée par le programme.
+```bash
+python ./OutilsLB/CreerBddLite.py ./photos-aeriennes-ign-master/data/pva index_pva.db
+```
+#
 
 Remplir le fichier_a_traiter par défaut le fichier  `list_dl.txt` avec les noms de clichés à géoréférencer. 
 Lancer le script `pipeline.sh` par exemple avec :
@@ -48,9 +54,19 @@ Lancer le script `pipeline.sh` par exemple avec :
 bash pipeline.sh
 ``` 
 
+## Description du code principal existant
+
+`pipeline.sh` Reprèsente la pipeline complète.
+
+`bash_processus.sh` Prépare les listes de clichés, initialise le géoréférencement approché et télécharge la BDOrtho de chaque chantier (avec 2 tentatives de téléchargement modifiable).
+
+`bash_traitement_serie2_export_points_gdalpam_affonly.sh` Traite un cliché donné (en argument), recalage fin par 2 méthodes HIATUS et SuperGlue, choix de la meilleure rotation, export des points de correspondance pour les 2 méthodes.
+
+`bash_export.sh` Étape optionnelle de visualisation : rassemble et organise les résultats finaux pour s'y retrouver facilement sans fouiller les fichiers temporaires.
+
 ## Bilan
 
-La pipeline fonctionne en général, il se peut que des téléchargements ne fonctionnent pas, mais dans ce cas les tests détectent le problème et empêchent que ça impacte la suite.
+La pipeline fonctionne en général tant que les clichés sont dans la BDD contenant, , il se peut que des téléchargements ne fonctionnent pas, mais dans ce cas les tests détectent le problème et empêchent que ça impacte la suite.
 
 Il reste des petites choses à effectuer ainsi que des pistes que j'aurai aimé explorer avec plus de temps ou un peu d'encadrements:
 
