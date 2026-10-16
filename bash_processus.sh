@@ -1,7 +1,15 @@
+if [ -z "\$1" ]; then
+    echo "Erreur : Preciser le chemin de la base de données."
+    echo "Usage  : \$0 <chemin_vers_la_bdd.db>"
+    exit 1
+fi
+bdd="$1"
+
 timestart=$SECONDS
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd $ROOT_DIR/Echantillon_jp2_mars2025/
+
 
 # #On liste les differents repertoires 
 rm liste_chantiers.txt liste_cliches.txt
@@ -20,7 +28,7 @@ done
     
 ls */*.tif > liste_cliches.txt
 #On lance le processus permettant de recuperer leur metadonnees approchees et d'initialiser la transf
-. $ROOT_DIR/bash_initialisation.sh
+. $ROOT_DIR/bash_initialisation.sh "$bdd"
 echo "Temps d'execution : $(( SECONDS - timestart )) secondes"
 timestart2=$SECONDS
 

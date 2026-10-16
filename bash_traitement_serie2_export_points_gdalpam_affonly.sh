@@ -3,13 +3,15 @@ ROOT_DIR="$( cd "$(dirname $0)" && pwd )"
 
 # Le chantier a traiter est passe en argument
 chantier="$1"
+dossier_traitement="${2:-$ROOT_DIR/Echantillon_jp2_mars2025}"
+
 if [ -z "${chantier}" ]; then
     echo "Usage : $0 <nom_du_chantier>"
     exit 1
 fi
  
 exes="$ROOT_DIR/OutilsLB"
-cd "$ROOT_DIR/Echantillon_jp2_mars2025/${chantier}" || exit 1
+cd "$dossier_traitement/${chantier}" || exit 1
  
 # Garde-fou si le script est lance seul : la BDOrtho doit exister et etre lisible
 if [ ! -s BDOrtho.tif ] || ! gdalinfo BDOrtho.tif > /dev/null 2>&1; then
@@ -26,16 +28,16 @@ echo "NOUVEAU METHODE GDAL PAM AFFONLY" >> $ROOT_DIR/LeonBerard3/journal.txt;
 date >> $ROOT_DIR/LeonBerard3/journal.txt
  
 #On fait la liste des cliches en presence
-echo -n "" > $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt
+echo -n "" > $dossier_traitement/liste_cliches.txt
 for cliche in IGNF*.tif ; do
     # printf '%q\n' $cliche
-    echo ${cliche%.*} >> $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt
+    echo ${cliche%.*} >> $dossier_traitement/liste_cliches.txt
 done ;
 
 #    cd georefini
     #On utilise le pre-georeferencement
     echo "Pre-georeferencement" >> $ROOT_DIR/LeonBerard3/journal.txt
-    for cliche in `cat $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt` ; do
+    for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 	# printf '%q\n' ${cliche}.tif
 	# printf '%q\n' ${cliche}.tif
 	echo
@@ -60,7 +62,7 @@ done ;
     mkdir travail_ssech10
     cd travail_ssech10
     echo "Travail" >> "$ROOT_DIR/LeonBerard3/journal.txt"
-for cliche in `cat $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt` ; do
+for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
     	echo ${cliche} >> $ROOT_DIR/LeonBerard3/journal.txt
     	date >> $ROOT_DIR/LeonBerard3/journal.txt
 	#listgeo -tfw ${cliche}.tif
@@ -75,6 +77,7 @@ for cliche in `cat $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt` ; do
 	for irot in 0 1 2 3 ; do
 	    cp ../${cliche}.warp10m.rot${irot}.tif ${cliche}.tif
 	    cp ../${cliche}.warp10m.rot${irot}.tfw ${cliche}.tfw
+
 	    #Methode HIATUS
 	    $ROOT_DIR/scripts-fromts/code-hiatus/MethodeAubry.LINUX  ${cliche}.BDOrtho.tif ${cliche}.BDOrtho.kaub --maxlocaux --SigmaInv $ROOT_DIR/scripts-fromts/code-hiatus/SigmaInvAubry.tif --Mu $ROOT_DIR/scripts-fromts/code-hiatus/MuAubry.tif > /dev/null
 	    $ROOT_DIR/scripts-fromts/code-hiatus/MethodeAubryAppariement.LINUX Points:Image ${cliche}.BDOrtho.kaub ${cliche}.tif ${cliche}.BDOrtho.-.${cliche}.resultpi  --SigmaInv $ROOT_DIR/scripts-fromts/code-hiatus/SigmaInvAubry.tif --Mu $ROOT_DIR/scripts-fromts/code-hiatus/MuAubry.tif --agarder 0.5 > /dev/null
@@ -132,11 +135,12 @@ for cliche in `cat $ROOT_DIR/Echantillon_jp2_mars2025/liste_cliches.txt` ; do
 	
 	$ROOT_DIR/OutilsLB/LB.LINUX Txt2GeoJson ${cliche}.BDOrtho.ptskaub ${cliche}.BDOrtho.ptskaub.geojson
 
-	#Pour export points
+	#Pour export points  reprojection repere terrain - original -- bd ortho
 	$ROOT_DIR/OutilsLB/LB.LINUX ScindeResult ${cliche}.BDOrtho.-.${cliche}.resultspgf ${cliche}.BDOrtho.ptsspg ${cliche}.ptsspg
 	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueAffinitePts --tfw ${cliche}.BDOrtho.tfw --pts_entree ${cliche}.BDOrtho.ptsspg --pts_sortie ${cliche}.BDOrtho.ptsspg
 	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueAffinitePts --tfw ${cliche}.tfw --pts_entree ${cliche}.ptsspg --pts_sortie ${cliche}.ptstmp
 	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueAffinitePts --tfw ../${cliche}.tfw --pts_entree ${cliche}.ptstmp --pts_sortie ${cliche}.ptstmp --modele_inverse
+
 
 	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueHomographiePts --tfw ${cliche}.modelefinal.affspg.txt --pts_entree ${cliche}.ptstmp --pts_sortie ${cliche}.ptsreproj.aff.modelespg --modele_inverse
 	$ROOT_DIR/OutilsLB/LB.LINUX Txt2GeoJson ${cliche}.ptsreproj.aff.modelespg ${cliche}.ptsreproj.aff.modelespg.geojson	
@@ -150,3 +154,4 @@ done
 
 end=$(date +%s)
 echo "Temps écoulé : $((end - start)) s"
+echo "$((end - start))" >>"$ROOT_DIR/temps_cliche.txt"
