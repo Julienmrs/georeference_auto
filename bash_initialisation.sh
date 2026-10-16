@@ -1,4 +1,11 @@
-#Il faut au prealable avoir cree la liste des cliches (chemin complet)
+if [ -z "\$1" ]; then
+    echo "Erreur : Vous devez spécifier le chemin de la base de données."
+    echo "Usage : \$0 <chemin_vers_la_bdd.db>"
+    exit 1
+fi
+
+bdd="$1"
+
 
 for cliche in `cat liste_cliches.txt`; do
     nomcliche=${cliche%.*} ;
@@ -9,7 +16,7 @@ for cliche in `cat liste_cliches.txt`; do
     ### Nvelle ligne : on interroge une bdd  crée pour trouver le geojson contenant les infos approchees de geolocalisation du cliche
     # echo "APPEL PYTHON : $ROOT_DIR/OutilsLB/Recherche_Geojason_bdd.py"
     # ls -l "$ROOT_DIR/OutilsLB/Recherche_Geojason_bdd.py"
-    python3  $ROOT_DIR/OutilsLB/Recherche_Geojason_bdd.py $ROOT_DIR/index_pva_tif.db ${nomcliche}.${extension} ${nomcliche}.geojson ;
+    python3  $ROOT_DIR/OutilsLB/Recherche_Geojason_bdd.py $bdd ${nomcliche}.${extension} ${nomcliche}.geojson ;
     
     ogr2ogr -t_srs EPSG:2154 ${nomcliche}.L93.geojson ${nomcliche}.geojson ;
     python3 $ROOT_DIR/OutilsLB/GeoJson2ExportCoordTerrain.py ${nomcliche}.L93.geojson ${nomcliche}.L93.coordL93.txt ;

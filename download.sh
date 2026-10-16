@@ -61,7 +61,7 @@ while IFS= read -r nom_image; do
         echo "  -> OK"
     else
         echo "  -> ÉCHEC"
-        echo "$nom_image" >> "${ROOT_DIR}/echec.txt"
+        # echo "$nom_image" >> "./echec.txt"
     fi
 
 done < "$fichier_a_dl"
