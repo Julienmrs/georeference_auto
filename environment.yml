@@ -1,12 +1,13 @@
 name: ign-pva
 channels:
   - pytorch
+  - nvidia
   - conda-forge
   - defaults
 dependencies:
   - python=3.11.5
   - pytorch=2.1.0
-  - cpuonly=2.0
+  - pytorch-cuda=12.1
   - numpy=1.26.0
   - matplotlib=3.8.0
   - gdal=3.8.4

@@ -1,6 +1,13 @@
+if [ -z "$1" ]; then
+    echo "Usage : $0 <dossier_de_traitement>"
+    exit 1
+fi
+dossier_traitement="$1"
+
 timestart=$SECONDS
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd $ROOT_DIR/Echantillon_jp2_mars2025
+cd "$dossier_traitement"
+
 mkdir final_5m
 for chantier in `cat liste_chantiers.txt`; do
     echo ${chantier}

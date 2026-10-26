@@ -1,4 +1,3 @@
-start=$(date +%s)
 ROOT_DIR="$( cd "$(dirname $0)" && pwd )"
 
 # Le chantier a traiter est passe en argument
@@ -82,10 +81,12 @@ for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 	    $ROOT_DIR/scripts-fromts/code-hiatus/MethodeAubry.LINUX  ${cliche}.BDOrtho.tif ${cliche}.BDOrtho.kaub --maxlocaux --SigmaInv $ROOT_DIR/scripts-fromts/code-hiatus/SigmaInvAubry.tif --Mu $ROOT_DIR/scripts-fromts/code-hiatus/MuAubry.tif > /dev/null
 	    $ROOT_DIR/scripts-fromts/code-hiatus/MethodeAubryAppariement.LINUX Points:Image ${cliche}.BDOrtho.kaub ${cliche}.tif ${cliche}.BDOrtho.-.${cliche}.resultpi  --SigmaInv $ROOT_DIR/scripts-fromts/code-hiatus/SigmaInvAubry.tif --Mu $ROOT_DIR/scripts-fromts/code-hiatus/MuAubry.tif --agarder 0.5 > /dev/null
 	    $ROOT_DIR/scripts-fromts/code-hiatus/RANSAC ${cliche}.BDOrtho.-.${cliche}.resultpi ${cliche}.BDOrtho.-.${cliche}.resultpif_rot${irot} > /dev/null
-
+		echo "$((end - start)) " >>"$ROOT_DIR/temps_cliche_kaub.txt"
 	    #Methode SuperGlue 
+
 	    python3 $ROOT_DIR/OutilsLB/SuperGlue/MetaSuperGlueTer.py ${cliche}.BDOrtho.tif ${cliche}.tif ${cliche}.BDOrtho.-.${cliche}.resultspg
 	    $ROOT_DIR/scripts-fromts/code-hiatus/RANSAC ${cliche}.BDOrtho.-.${cliche}.resultspg ${cliche}.BDOrtho.-.${cliche}.resultspgf_rot${irot} > /dev/null
+		echo "$((end - start))" >>"$ROOT_DIR/temps_cliche_spg.txt"
 
 	done
 
@@ -113,7 +114,6 @@ for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 	$ROOT_DIR/OutilsLB/LB.LINUX WarpHomographie --tfw ${cliche}.modelefinal.affkaub.txt --image ../${cliche}.tif --image_sortie ${cliche}.affkaub.tif --modele_inverse
 	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo:tfw ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelekaub.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affkaub.tfw 
 	python3 $ROOT_DIR/OutilsLB/Creer_PAM_from_im_tfw.py ../${cliche}.coordim_rot0 ${cliche}.modelefinal.affkaub.tfw ${cliche}.modelefinal.affkaub.tif.aux.xml ; #ln -s ../${cliche}.tif ${cliche}.modelefinal.affkaub.tif ; gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 ${cliche}.modelefinal.affkaub.tif ${cliche}.modelefinal.affkaub.tif.vrt ; gdal_translate -co COMPRESS=DEFLATE ${cliche}.modelefinal.affkaub.tif.vrt ${cliche}.modelefinal.affkaub.tif ; rm 
-	
 	#Methode SuperGlue (pour le moment a la main)
 	echo "Methode spg" >> $ROOT_DIR/LeonBerard3/journal.txt
 	#$ROOT_DIR/estimHomog.LINUX ${cliche}.BDOrtho.-.${cliche}.resultspgf > /dev/null ; mv modele.txt ${cliche}.hom.modelespg.txt
@@ -122,7 +122,6 @@ for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 	$ROOT_DIR/OutilsLB/LB.LINUX WarpHomographie --tfw ${cliche}.modelefinal.affspg.txt --image ../${cliche}.tif --image_sortie ${cliche}.affspg.tif --modele_inverse
 	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo:tfw ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelespg.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affspg.tfw
 	python3 $ROOT_DIR/OutilsLB/Creer_PAM_from_im_tfw.py ../${cliche}.coordim_rot0 ${cliche}.modelefinal.affspg.tfw ${cliche}.modelefinal.affspg.tif.aux.xml ; #ln -s ../${cliche}.tif ${cliche}.modelefinal.affspg.tif ; gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 ${cliche}.modelefinal.affspg.tif ${cliche}.modelefinal.affspg.tif.vrt ; gdal_translate -co COMPRESS=DEFLATE ${cliche}.modelefinal.affspg.tif.vrt ${cliche}.modelefinal.affspg.tif ; rm 
-
 
 	#Pour export points
 	$ROOT_DIR/OutilsLB/LB.LINUX ScindeResult ${cliche}.BDOrtho.-.${cliche}.resultpif ${cliche}.BDOrtho.ptskaub ${cliche}.ptskaub
@@ -151,7 +150,3 @@ for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 
 done
 
-
-end=$(date +%s)
-echo "Temps écoulé : $((end - start)) s"
-echo "$((end - start))" >>"$ROOT_DIR/temps_cliche.txt"
