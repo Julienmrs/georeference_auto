@@ -4,8 +4,10 @@ fichier_a_traiter="$ROOT_DIR/list_dl.txt"
 dossier_traitement="$ROOT_DIR/Echantillon_jp2_mars2025"
 bdd="$ROOT_DIR/base.db"
 
+# true regroupement geographique au telechargement, cliches proches dans un meme dossier, nom du premier dans la liste
+# false pour revenir a un traitement cliche par cliche
 regroupement_actif=true
-seuil=5000 # en mètres
+seuil=5000 # en metres
 
 nettoyage=true
 

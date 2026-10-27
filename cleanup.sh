@@ -11,3 +11,8 @@ for chantier in `cat liste_chantiers_ok.txt`; do
     echo "Suppression de ${chantier}"
     rm -rf "${chantier}"
 done
+ 
+for chantier in `cat liste_chantiers_kc.txt`; do
+    echo "Suppression de ${chantier}"
+    rm -rf "${chantier}"
+done
