@@ -1,7 +1,9 @@
-    usage() {
-    echo "Usage : $0 --input <fichier> --output <dossier>"
+usage() {
+    echo "Usage : $0 --input <fichier> --output <dossier> [--chantiers <fichier_mapping>]"
     exit 1
 }
+
+fichier_chantiers=""
 
 # Lecture des arguments
 while [[ $# -gt 0 ]]; do
@@ -12,6 +14,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --output)
             dossier_de_dl="$2"
+            shift 2
+            ;;
+        --chantiers)
+            fichier_chantiers="$2"
             shift 2
             ;;
         *)
@@ -31,16 +37,24 @@ if [[ ! -f "$fichier_a_dl" ]]; then
     exit 1
 fi
 
+declare -A dossier_par_image
+if [[ -n "$fichier_chantiers" ]]; then
+    while read -r nom_image nom_dossier; do
+        [[ -z "$nom_image" ]] && continue
+        dossier_par_image["$nom_image"]="$nom_dossier"
+    done < "$fichier_chantiers"
+fi
+
 timestart=$SECONDS
 
 mkdir -p "$dossier_de_dl"
-echo -n "" > "${ROOT_DIR}/echec.txt"
 
 while IFS= read -r nom_image; do
     # Ignore les lignes vides
     [[ -z "$nom_image" ]] && continue
 
-    dossier="${dossier_de_dl}/${nom_image}"
+    sous_dossier="${dossier_par_image[$nom_image]:-$nom_image}"
+    dossier="${dossier_de_dl}/${sous_dossier}"
     mkdir -p "$dossier"
 
     mission="${nom_image#*__C}"
@@ -48,7 +62,7 @@ while IFS= read -r nom_image; do
 
     url="https://data.geopf.fr/telechargement/download/pva/${mission}/${nom_image}.tif"
 
-    echo "Téléchargement : $nom_image"
+    echo "Téléchargement : $nom_image -> ${sous_dossier}"
 
     if wget -q --show-progress \
         --tries=5 \
@@ -61,7 +75,7 @@ while IFS= read -r nom_image; do
         echo "  -> OK"
     else
         echo "  -> ÉCHEC"
-        # echo "$nom_image" >> "./echec.txt"
+        echo "$nom_image" >> "./echec.txt"
     fi
 
 done < "$fichier_a_dl"

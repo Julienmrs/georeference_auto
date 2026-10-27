@@ -1,14 +1,15 @@
-if [ -z "\$1" ]; then
-    echo "Erreur : Preciser le chemin de la base de données."
-    echo "Usage  : \$0 <chemin_vers_la_bdd.db>"
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Erreur : Preciser le chemin de la base de données et le dossier de traitement."
+    echo "Usage  : $0 <chemin_vers_la_bdd.db> <dossier_de_traitement>"
     exit 1
 fi
 bdd="$1"
+dossier_traitement="$2"
 
 timestart=$SECONDS
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd $ROOT_DIR/Echantillon_jp2_mars2025/
+cd "$dossier_traitement"
 
 
 # #On liste les differents repertoires 
