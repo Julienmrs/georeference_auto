@@ -7,6 +7,8 @@ bdd="$ROOT_DIR/base.db"
 regroupement_actif=true
 seuil=5000 # en mètres
 
+nettoyage=true
+
 echo "Root dir: $ROOT_DIR"
 echo "Fichier à traiter: $fichier_a_traiter"
 
@@ -46,3 +48,7 @@ bash "$ROOT_DIR/bash_export.sh" "$dossier_traitement"
 ### Version 5m
 # bash "$ROOT_DIR/bash_traitement_serie2_export_points_gdalpam_affonly_5m.sh"
 # bash "$ROOT_DIR/bash_export_5m.sh"
+
+if [ "$nettoyage" = true ]; then
+    bash "$ROOT_DIR/cleanup.sh" "$dossier_traitement"
+fi
