@@ -2,7 +2,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 fichier_a_traiter="$ROOT_DIR/list_dl.txt"
 dossier_traitement="$ROOT_DIR/Echantillon_jp2_mars2025"
-bdd="$ROOT_DIR/index_pva_spatial.db"
+bdd="$ROOT_DIR/base.db"
+
+regroupement_actif=true
+seuil=5000 # en mètres
 
 echo "Root dir: $ROOT_DIR"
 echo "Fichier à traiter: $fichier_a_traiter"
@@ -11,11 +14,20 @@ python3 "$ROOT_DIR/test_presence_bdd.py" \
     "$bdd" \
     "$fichier_a_traiter"
 
+chantiers_args=()
+if [ "$regroupement_actif" = true ]; then
+    python3 "$ROOT_DIR/tri_spatial.py" "$bdd" "$seuil" "$ROOT_DIR/pva_present.txt" --dossiers > "$ROOT_DIR/affectation_dossiers.txt"
+    chantiers_args=(--chantiers "$ROOT_DIR/affectation_dossiers.txt")
+fi
+
 bash "$ROOT_DIR/download.sh" \
     --input "$ROOT_DIR/pva_present.txt" \
-    --output "$dossier_traitement"
+    --output "$dossier_traitement" \
+    "${chantiers_args[@]}"
 
-bash "$ROOT_DIR/bash_processus.sh" "$bdd"
+python3 "$ROOT_DIR/verif_chantier.py" "$bdd" "$seuil" "$dossier_traitement"
+
+bash "$ROOT_DIR/bash_processus.sh" "$bdd" "$dossier_traitement"
 
 liste_ok="$dossier_traitement/liste_chantiers_ok.txt"
 if [ ! -s "$liste_ok" ]; then
