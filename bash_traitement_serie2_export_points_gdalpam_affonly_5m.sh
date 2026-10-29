@@ -7,17 +7,10 @@ cd $ROOT_DIR/Echantillon_jp2_mars2025
 adresse_outils_superglue="$ROOT_DIR/OutilsLB/SuperGlue/"
 
 for chantier in `cat liste_chantiers.txt` ; do
-    echo ${chantier} >> $ROOT_DIR/LeonBerard3/journal.txt;
-    echo "NOUVEAU METHODE GDAL PAM AFFONLY" >> $ROOT_DIR/LeonBerard3/journal.txt;
-    date >> $ROOT_DIR/LeonBerard3/journal.txt
     cd ${chantier}
-    echo "Pre-georeferencement" >> $ROOT_DIR/LeonBerard3/journal.txt
     mkdir travail_ssech5
     cd travail_ssech5
-    echo "Travail" >> $ROOT_DIR/LeonBerard3/journal.txt
     for cliche in `cat ../liste_cliches.txt` ; do
-    	echo ${cliche} >> $ROOT_DIR/LeonBerard3/journal.txt
-    	date >> $ROOT_DIR/LeonBerard3/journal.txt
 	irotbest=0
 	for a in `cat ../travail_ssech10/${cliche}.rotbest.txt` ; do
 	    irotbest=${a}
@@ -42,7 +35,6 @@ for chantier in `cat liste_chantiers.txt` ; do
 	#rm ../${cliche}.warp10m.rot*
 	
 	#Methode HIATUS
-	echo "Methode kaub" >> $ROOT_DIR/LeonBerard3/journal.txt
 	$ROOT_DIR/OutilsLB/LB.LINUX CalculTransfo2D:Affinite ${cliche}.BDOrtho.-.${cliche}.resultpif ${cliche}.aff.modelekaub.txt > /dev/null
 	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelekaub.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affkaub.txt
 	$ROOT_DIR/OutilsLB/LB.LINUX WarpHomographie --tfw ${cliche}.modelefinal.affkaub.txt --image ../${cliche}.tif --image_sortie ${cliche}.affkaub.tif --modele_inverse
@@ -50,7 +42,6 @@ for chantier in `cat liste_chantiers.txt` ; do
 	python3 $ROOT_DIR/OutilsLB/Creer_PAM_from_im_tfw.py ../${cliche}.coordim_rot0 ${cliche}.modelefinal.affkaub.tfw ${cliche}.modelefinal.affkaub.tif.aux.xml ; #ln -s ../${cliche}.tif ${cliche}.modelefinal.affkaub.tif ; gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 ${cliche}.modelefinal.affkaub.tif ${cliche}.modelefinal.affkaub.tif.vrt ; gdal_translate -co COMPRESS=DEFLATE ${cliche}.modelefinal.affkaub.tif.vrt ${cliche}.modelefinal.affkaub.tif ; rm 
 	
 	#Methode SuperGlue (pour le moment a la main)
-	echo "Methode spg" >> $ROOT_DIR/LeonBerard3/journal.txt
 	#$ROOT_DIR/estimHomog.LINUX ${cliche}.BDOrtho.-.${cliche}.resultspgf > /dev/null ; mv modele.txt ${cliche}.hom.modelespg.txt
 	$ROOT_DIR/OutilsLB/LB.LINUX CalculTransfo2D:Affinite ${cliche}.BDOrtho.-.${cliche}.resultspgf ${cliche}.aff.modelespg.txt > /dev/null
 	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelespg.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affspg.txt	

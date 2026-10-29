@@ -20,10 +20,6 @@ fi
  
 adresse_outils_superglue="$ROOT_DIR/OutilsLB/SuperGlue/"
  
-echo ${chantier} >> $ROOT_DIR/LeonBerard3/journal.txt;
-echo "NOUVEAU METHODE GDAL PAM AFFONLY" >> $ROOT_DIR/LeonBerard3/journal.txt;
-date >> $ROOT_DIR/LeonBerard3/journal.txt
- 
 #On fait la liste des cliches en presence
 echo -n "" > $dossier_traitement/liste_cliches.txt
 for cliche in IGNF*.tif ; do
@@ -32,14 +28,11 @@ for cliche in IGNF*.tif ; do
 done ;
 
     #On utilise le pre-georeferencement
-    echo "Pre-georeferencement" >> $ROOT_DIR/LeonBerard3/journal.txt
     for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 	# printf '%q\n' ${cliche}.tif
 	# printf '%q\n' ${cliche}.tif
 	echo
 	mv "${cliche}.tif" "${cliche}_ini.tif"
-    	echo ${cliche} >> $ROOT_DIR/LeonBerard3/journal.txt
-    	date >> $ROOT_DIR/LeonBerard3/journal.txt
 		gdal_translate ${cliche}_ini.tif ${cliche}.tif
 		echo -n "" > monbash
 		for irot in 0 1 2 3 ; do
@@ -52,17 +45,13 @@ done ;
     done
     mkdir travail_ssech10
     cd travail_ssech10
-    echo "Travail" >> "$ROOT_DIR/LeonBerard3/journal.txt"
 for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
-    	echo ${cliche} >> $ROOT_DIR/LeonBerard3/journal.txt
-    	date >> $ROOT_DIR/LeonBerard3/journal.txt
 	cp ../${cliche}.warp10m.rot0.tif ${cliche}.tif
 	cp ../${cliche}.warp10m.rot0.tfw ${cliche}.tfw
 	gdalbuildvrt BDOrtho.vrt ../BDOrtho.tif 
 	gdaltindex ${cliche}.shp ${cliche}.tif
 	gdalwarp -overwrite -cutline ${cliche}.shp -r average -crop_to_cutline -tr 10 10 -overwrite BDOrtho.vrt ${cliche}.BDOrtho.tif
 	listgeo -tfw ${cliche}.BDOrtho.tif
-	echo "Choix rotation" >> $ROOT_DIR/LeonBerard3/journal.txt
 	for irot in 0 1 2 3 ; do
 	    cp ../${cliche}.warp10m.rot${irot}.tif ${cliche}.tif
 	    cp ../${cliche}.warp10m.rot${irot}.tfw ${cliche}.tfw
@@ -85,7 +74,6 @@ for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 	for a in `cat ${cliche}.BDOrtho.-.${cliche}.best` ; do
 	    irotbest=${a}
 	done
-	echo ${irotbest} est la meilleure rotation pour ${cliche} >> $ROOT_DIR/LeonBerard3/journal.txt
 	echo ${irotbest} > ${cliche}.rotbest.txt
 	cp ${cliche}.BDOrtho.-.${cliche}.resultspgf_rot${irotbest} ${cliche}.BDOrtho.-.${cliche}.resultspgf
 	cp ${cliche}.BDOrtho.-.${cliche}.resultpif_rot${irotbest} ${cliche}.BDOrtho.-.${cliche}.resultpif
@@ -97,14 +85,12 @@ for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 	python3 $ROOT_DIR/OutilsLB/Creer_PAM_from_im_terr.py ../${cliche}.coordim_rot${irotbest} ../${cliche}.L93.coordL93.txt ../${cliche}.tif.aux.xml
 	
 	#Methode HIATUS
-	echo "Methode kaub" >> $ROOT_DIR/LeonBerard3/journal.txt
 	$ROOT_DIR/OutilsLB/LB.LINUX CalculTransfo2D:Affinite ${cliche}.BDOrtho.-.${cliche}.resultpif ${cliche}.aff.modelekaub.txt > /dev/null
 	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelekaub.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affkaub.txt
 	$ROOT_DIR/OutilsLB/LB.LINUX WarpHomographie --tfw ${cliche}.modelefinal.affkaub.txt --image ../${cliche}.tif --image_sortie ${cliche}.affkaub.tif --modele_inverse
 	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo:tfw ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelekaub.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affkaub.tfw 
 	python3 $ROOT_DIR/OutilsLB/Creer_PAM_from_im_tfw.py ../${cliche}.coordim_rot0 ${cliche}.modelefinal.affkaub.tfw ${cliche}.modelefinal.affkaub.tif.aux.xml ; #ln -s ../${cliche}.tif ${cliche}.modelefinal.affkaub.tif ; gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 ${cliche}.modelefinal.affkaub.tif ${cliche}.modelefinal.affkaub.tif.vrt ; gdal_translate -co COMPRESS=DEFLATE ${cliche}.modelefinal.affkaub.tif.vrt ${cliche}.modelefinal.affkaub.tif ; rm 
 	#Methode SuperGlue
-	echo "Methode spg" >> $ROOT_DIR/LeonBerard3/journal.txt
 	$ROOT_DIR/OutilsLB/LB.LINUX CalculTransfo2D:Affinite ${cliche}.BDOrtho.-.${cliche}.resultspgf ${cliche}.aff.modelespg.txt > /dev/null
 	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelespg.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affspg.txt	
 	$ROOT_DIR/OutilsLB/LB.LINUX WarpHomographie --tfw ${cliche}.modelefinal.affspg.txt --image ../${cliche}.tif --image_sortie ${cliche}.affspg.tif --modele_inverse

@@ -76,7 +76,6 @@ for chantier in `cat liste_chantiers.txt`; do
         echo ${chantier} >> ../liste_chantiers_ok.txt
     else
         echo "dl rate BDOrtho pour ${chantier} (code ${statut}) : chantier skip"
-        echo "$(date) : dl BDOrtho ${chantier} (code ${statut})" >> $ROOT_DIR/LeonBerard3/journal.txt
         echo ${chantier} >> ../liste_chantiers_kc.txt
     fi
 
