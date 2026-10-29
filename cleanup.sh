@@ -5,7 +5,6 @@ fi
 dossier_traitement="$1"
  
 cd "$dossier_traitement"
-cd "Echantillon_jp2_mars2025"
 
 for chantier in `cat liste_chantiers_ok.txt`; do
     echo "Suppression de ${chantier}"
