@@ -9,6 +9,8 @@ bdd="$ROOT_DIR/base.db"
 regroupement_actif=true
 seuil=5000 # en metres
 
+cdt_bord=true
+
 nettoyage=true
 
 echo "Root dir: $ROOT_DIR"
@@ -31,7 +33,7 @@ bash "$ROOT_DIR/download.sh" \
 
 python3 "$ROOT_DIR/verif_chantier.py" "$bdd" "$seuil" "$dossier_traitement"
 
-bash "$ROOT_DIR/bash_processus.sh" "$bdd" "$dossier_traitement"
+bash "$ROOT_DIR/bash_processus.sh" "$bdd" "$dossier_traitement" "$cdt_bord"
 
 liste_ok="$dossier_traitement/liste_chantiers_ok.txt"
 if [ ! -s "$liste_ok" ]; then

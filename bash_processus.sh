@@ -1,11 +1,11 @@
-if [ -z "$1" ] || [ -z "$2" ]; then
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
     echo "Erreur : Preciser le chemin de la base de données et le dossier de traitement."
-    echo "Usage  : $0 <chemin_vers_la_bdd.db> <dossier_de_traitement>"
+    echo "Usage  : $0 <chemin_vers_la_bdd.db> <dossier_de_traitement> <cdt_bord:true|false>"
     exit 1
 fi
 bdd="$1"
 dossier_traitement="$2"
-
+cdt_bord="$3"
 timestart=$SECONDS
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,7 +29,7 @@ done
     
 ls */*.tif > liste_cliches.txt
 #On lance le processus permettant de recuperer leur metadonnees approchees et d'initialiser la transf
-. $ROOT_DIR/bash_initialisation.sh "$bdd"
+. $ROOT_DIR/bash_initialisation.sh "$bdd" "$cdt_bord"
 echo "Temps d'execution : $(( SECONDS - timestart )) secondes"
 timestart2=$SECONDS
 

@@ -1,28 +1,33 @@
-if [ -z "\$1" ]; then
+if [ -z "$1" ]; then
     echo "Erreur : Vous devez spécifier le chemin de la base de données."
-    echo "Usage : \$0 <chemin_vers_la_bdd.db>"
+    echo "Usage : \$0 <chemin_vers_la_bdd.db> <cdt_bord:true|false>"
     exit 1
 fi
 
 bdd="$1"
-
+cdt_bord="${2:-true}"
 
 for cliche in `cat liste_cliches.txt`; do
     nomcliche=${cliche%.*} ;
     echo ${nomcliche} ;
     extension=${cliche##*.} ;
-    ##ligne originale on parcourt les geojson pour trouver le bon a chaque lancement
-    # python3 $ROOT_DIR/OutilsLB/Recherche_Geojason.py $ROOT_DIR/photos-aeriennes-ign-master/data/pva ${nomcliche} ;
-    ### Nvelle ligne : on interroge une bdd  crée pour trouver le geojson contenant les infos approchees de geolocalisation du cliche
-    # echo "APPEL PYTHON : $ROOT_DIR/OutilsLB/Recherche_Geojason_bdd.py"
-    # ls -l "$ROOT_DIR/OutilsLB/Recherche_Geojason_bdd.py"
     python3  $ROOT_DIR/OutilsLB/Recherche_Geojason_bdd.py $bdd ${nomcliche}.${extension} ${nomcliche}.geojson ;
-    
     ogr2ogr -t_srs EPSG:2154 ${nomcliche}.L93.geojson ${nomcliche}.geojson ;
     python3 $ROOT_DIR/OutilsLB/GeoJson2ExportCoordTerrain.py ${nomcliche}.L93.geojson ${nomcliche}.L93.coordL93.txt ;
-    python3 $ROOT_DIR/OutilsLB/ExportCoordIm_multi.py ${nomcliche}.${extension} ${nomcliche}.coordim ;
+    gdal_translate ${nomcliche}.${extension} ${nomcliche}2.tif ;
+    if [ "$cdt_bord" = true ]; then
+        $ROOT_DIR/OutilsLB/Coherence.LINUX DetecteBord  --cliche ${nomcliche}2.${extension} --output:emprise:8 coord_img_sans_bord.txt
+        statut=$?
+    else
+        statut=1
+    fi
+    if [ $statut -eq 0 ] && [ -s coord_img_sans_bord.txt ]; then
+            python3 $ROOT_DIR/OutilsLB/ExportCoordIm_multi.py coord_img_sans_bord.txt ${nomcliche}.coordim ;
+        else
+            python3 $ROOT_DIR/OutilsLB/ExportCoordIm_multi.py ${nomcliche}.${extension} ${nomcliche}.coordim ;
+    fi
+    rm ${nomcliche}2.tif
     for j in 0 1 2 3 ; do
-	# echo ${j} ;
 	python3 $ROOT_DIR/OutilsLB/CalculTransfo.py ${nomcliche}.L93.coordL93.txt ${nomcliche}.coordim_rot${j} ${nomcliche}.tfw_rot${j} ;
     done ;
 done 
