@@ -3,6 +3,7 @@ import json
 import sqlite3
 import sys
 
+## Script pour créer une base de données spatiale à partir de fichiers GeoJSON.
 if len(sys.argv) != 3:
     print(f"Usage : python {sys.argv[0]} dossier_geojson base.db")
     quit()
@@ -16,7 +17,7 @@ conn.load_extension("mod_spatialite")
 conn.enable_load_extension(False)
 
 cursor = conn.cursor()
-
+# Initialisation de la base de données spatiale
 try:
     cursor.execute("SELECT InitSpatialMetaData(1)")
 except sqlite3.OperationalError:
@@ -33,14 +34,14 @@ cursor.execute("""
         properties TEXT
     )
 """)
-
+# Ajout de la colonne de géométrie spatiale ou mise à jour si elle n'existe pas
 try:
     cursor.execute("""
         SELECT AddGeometryColumn('photos', 'geom', 4326, 'GEOMETRY', 'XY')
     """)
 except sqlite3.OperationalError:
     pass
-
+# Ajout une index spatial
 try:
     cursor.execute("""
         SELECT CreateSpatialIndex('photos', 'geom')
@@ -52,6 +53,7 @@ conn.commit()
 
 nb_ajoutes = 0
 
+# Lecture des fichiers GeoJSON et insertion dans la base de données
 for json_file in sorted(os.listdir(json_folder)):
     if not json_file.endswith(".geojson"):
         continue

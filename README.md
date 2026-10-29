@@ -1,30 +1,32 @@
 # Environnement du pipeline
 
-## Environnement Conda 
+## Environnements Conda
 
-Depuis la racine du dépôt, on crée l'environnement une seule fois :
+Il y a deux environnements : un pour le traitement (lourd, GPU) et un pour les outils annexes (léger).
+
+Depuis la racine du dépôt, on crée les deux :
 
 ```bash
+conda env create -f env_outils.yml
 conda env create -f environment.yml
 ```
 
-Faut l'activer et après on peut normalement lancer la pipeline / les différents programme  :
+Pour l'extraction des métadonnées et la carte web :
+```bash
+conda activate ign-pva-outils
+```
 
+Pour le traitement (pipeline, géoréférencement) :
 ```bash
 conda activate ign-pva
 ```
 
-Pour lancer la pipeline
-```bash
-bash pipeline.sh
-```
-
-## Versions incluses
+### Versions incluses — `ign-pva` (traitement)
 
 | Outil / bibliothèque | Version |
 | --- | --- |
 | Python | `3.11.5` |
-| PyTorch CPU | `2.1.0` |
+| PyTorch (GPU, `pytorch-cuda`) | `2.1.0` |
 | NumPy | `1.26.0` |
 | OpenCV Python | `4.8.1.78` |
 | Matplotlib | `3.8.0` |
@@ -34,55 +36,97 @@ bash pipeline.sh
 | Make | `4.4.1` |
 | psycopg2-binary | `2.9.9` |
 
-Les versions proviennent de l'environnement SuperGlue existant et des outils GIS employés par les scripts. La configuration est dans `environment.yml`.
+### Versions incluses — `ign-pva-outils` (extraction + carte)
 
-## Nécessite les archives les fichiers de missions de l'ign
+| Outil / bibliothèque | Version |
+| --- | --- |
+| Python | `3.11.5` |
+| Flask | - |
+| requests | - |
 
-On se sert des fichiers des missions contenant les métadonnées sur les pva l'archives s'appelle initialement `photos-aeriennes-ign-master.zip` le dossier extrait est à placer à la racine du dossier.
+### Dépendance système : SpatiaLite
 
-## Comment lancer 
+La base est une base SQLite + SpatiaLite `spatialite` est une bibliothèque système, il faut l'avoir installée au niveau de l'OS (`libsqlite3-mod-spatialite`).
 
-Créer la BDD avec la commande ci-dessous en étant à la racine du projet. Il est possible d’en créer une plus claire, en utilisant les métadonnées présentes dans les fichiers properties et en les répartissant dans des colonnes précises via `CreerBddLite_complete.py` , mais celle-ci est suffisante et est celle utilisée par le programme.
+## Récupération des métadonnées
+
+`extract.py` interroge directement le flux WFS de la Géoplateforme et écrit les métadonnées des clichés PVA, réparties par année, au même format (GeoJSON, mêmes 16 champs) que l'ancienne extraction de 2016.
+
 ```bash
-python ./OutilsLB/CreerBddLite.py ./photos-aeriennes-ign-master/data/pva index_pva.db
+conda activate ign-pva-outils
+python3 extract.py data/pva
 ```
-#
 
-Remplir le fichier_a_traiter par défaut le fichier  `list_dl.txt` avec les noms de clichés à géoréférencer. 
-Lancer le script `pipeline.sh` par exemple avec :
+Il est toujours possible de se servir des données de 2016, le mieux est de les télécharger dans un dossier séparé.
+## Base de données
+
+Création ou mise à jour de la base (SQLite + SpatiaLite) à partir d'un dossier de fichiers `.geojson` :
+
 ```bash
+conda activate ign-pva-outils
+python3 test_bdd_spatial.py data/pva base.db
+```
+
+Le script peut être relancé plusieurs fois, y compris sur un autre dossier de données (par exemple l'ancienne extraction), sans recréer la base ni dupliquer les lignes déjà présentes (`INSERT OR IGNORE` sur l'`url`).
+
+### Parcourir la base sur une carte
+
+`carte_bdd.py` lance une petite interface web locale (Flask) pour chercher des clichés par zone géographique et par année, et exporter la sélection dans un fichier `.txt` au format attendu par `list_dl.txt`.
+
+```bash
+conda activate ign-pva-outils
+python3 carte_bdd.py index_pva_spatial.db
+```
+Puis ouvrir `http://127.0.0.1:5000`. Le fond de carte (OpenStreetMap) a besoin d'une connexion Internet, la base elle-même reste locale.
+
+## Comment lancer la pipeline
+
+Remplir `list_dl.txt` (un nom de cliché par ligne) ou utiliser `carte_bdd.py` pour en générer un à partir d'une sélection sur la carte.
+
+```bash
+conda activate ign-pva
 bash pipeline.sh
-``` 
+```
 
-## Description du code principal existant
+Deux options sont réglables en haut de `pipeline.sh` :
+- `regroupement_actif` + `seuil_regroupement` : si actif, les clichés suffisamment proches (sous le seuil, distance calculée sur leur géométrie réelle et pas juste leur centre) sont téléchargés dans un même dossier et traités ensemble (une seule BDOrtho), les autres restent séparés. Si inactif, chaque cliché garde son propre dossier comme avant.
+- `nettoyage_actif` : si actif, les dossiers de travail bruts sont supprimés en fin de chaîne, ne laissant que les résultats finaux (`final/`, `final_spg/`, `initial/`).
 
-`pipeline.sh` Reprèsente la pipeline complète.
 
-`bash_processus.sh` Prépare les listes de clichés, initialise le géoréférencement approché et télécharge la BDOrtho de chaque chantier (avec 2 tentatives de téléchargement modifiable).
+### Traiter un groupe de clichés choisi à la main
 
-`bash_traitement_serie2_export_points_gdalpam_affonly.sh` Traite un cliché donné (en argument), recalage fin par 2 méthodes HIATUS et SuperGlue, choix de la meilleure rotation, export des points de correspondance pour les 2 méthodes.
+`pipeline_chantier.sh` est une variante pour forcer un ensemble de clichés dans un même dossier, sans tenir compte de la distance (par exemple un chantier qu'on sait vouloir traiter ensemble). Elle enchaîne ensuite la même suite de traitement que `pipeline.sh`, jusqu'à l'export et le nettoyage mais produit quand même un avertissement dans le cas d'un grand chantier.
 
-`bash_export.sh` Étape optionnelle de visualisation : rassemble et organise les résultats finaux pour s'y retrouver facilement sans fouiller les fichiers temporaires.
+```bash
+bash pipeline_chantier.sh liste.txt nom_du_chantier [seuil_avertissement]
+```
+
+## Description du code principal
+
+`pipeline.sh` Pipeline complète : vérification de présence en base, téléchargement, vérification de cohérence, initialisation + recalage, export, nettoyage optionnel.
+
+`pipeline_chantier.sh` Variante pour forcer un groupe de clichés donné dans un même dossier de traitement, peu importe la distance.
+
+`extract.py` Récupère les métadonnées des clichés PVA depuis le WFS de la Géoplateforme, par année, au format legacy.
+
+`creer_bdd_spatial.py` Crée/met à jour la base SQLite + SpatiaLite (table `photos`, colonne géométrique indexée `geom`) à partir d'un dossier de GeoJSON.
+
+`tri_spatial.py` Regroupe des clichés par proximité géographique.
+
+`test_presence_bdd.py` Vérifie la présence des clichés de `list_dl.txt` dans la base, écrit `pva_present.txt` / `pva_absent.txt`.
+
+`download.sh` Télécharge les clichés présents.
+
+`bash_processus.sh` Prépare les listes de clichés par chantier, initialise le géoréférencement approché (`bash_initialisation.sh`) et télécharge la BDOrtho de chaque chantier (2 tentatives, modifiable).
+
+`bash_initialisation.sh` Recherche les métadonnées approchées via la base, détecte le bord du cliché (`Coherence.LINUX DetecteBord`, activable/désactivable en second paramètre) et calcule les coordonnées image pour les 4 rotations testées.
+
+`bash_traitement_serie2_export_points_gdalpam_affonly.sh` Traite un cliché donné : recalage fin par 2 méthodes (HIATUS/Akaub et SuperGlue), choix de la meilleure rotation, export des points de correspondance pour les 2 méthodes.
+
+`bash_export.sh` Étape de visualisation : rassemble et organise les résultats finaux (`final/`, `final_spg/`, `initial/`) pour s'y retrouver sans fouiller les fichiers temporaires. Prennent le dossier de traitement en paramètre.
+
+`cleanup.sh` Supprime les dossiers de travail bruts (listés dans `liste_chantiers_ok.txt` et `liste_chantiers_kc.txt`) en fin de chaîne, ne garde que les dossiers finaux.
 
 ## Bilan
 
-La pipeline fonctionne en général tant que les clichés sont dans la BDD contenant, , il se peut que des téléchargements ne fonctionnent pas, mais dans ce cas les tests détectent le problème et empêchent que ça impacte la suite.
-
-Il reste des petites choses à effectuer ainsi que des pistes que j'aurai aimé explorer avec plus de temps ou un peu d'encadrements:
-
-- Modifier le script pour le traitement à 5m et le script export.
-
-- Optimiser certains appels, piste de se servir plus de la BDD, jsp si ça ira forcément plus vite, mais à tenter.
-
-- Changer le script d’export dans la piste de traiter les fichiers un à un. Dans l'optique de m'être en place la parallélisation, mieux vaut qu’il traite uniquement un fichier et pas l’ensemble des dossiers.
-
-- Changer les noms des scripts et faire un nettoyage de tous les fichiers inutiles, ça ne devrait pas être très dur, j'ai fait en sorte que dans chaque appel, les autres fichiers soient clairs. Je ne savais juste pas de quoi j'avais le droit de changer pendant mon stage. 
-
-- La piste de la relation entre des clichés à différentes époques pour des zones d'ont l'OCS à grandement évoluée. 
-Il y a aussi l'éventualité de se contenter du géoréférencement grossier.
-
-- J'utilise actuellement une BDD SQLite3 afin de ne pas m'embêter avec la gestion des géométries et d'avoir à me connecter à PostGIS. Il suffit de lancer une recherche d'informations directement dans la BDD.
-
-- Possibilité de se servir davantage de la BDD. Actuellement, elle sert uniquement à vérifier la présence des données. On pourrait également récupérer directement les métadonnées depuis celle-ci. Cependant, l'enchaînement entre la BDD et la lecture du JSON associé est suffisamment rapide pour le moment.
-
-##
+La pipeline fonctionne en général tant que les clichés sont dans la BDD ; il se peut que des téléchargements ne fonctionnent pas, mais dans ce cas les tests détectent le problème et empêchent que ça impacte la suite.
