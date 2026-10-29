@@ -5,7 +5,6 @@ conda activate SuperGlue
 cd $ROOT_DIR/Echantillon_jp2_mars2025
 #adresse_outils_superglue="$ROOT_DIR/essai_20232024/"
 adresse_outils_superglue="$ROOT_DIR/OutilsLB/SuperGlue/"
-adresseMNT="$ROOT_DIR/OutilsLB/MNT.tif"
 
 for chantier in `cat liste_chantiers.txt` ; do
     echo ${chantier} >> $ROOT_DIR/LeonBerard3/journal.txt;

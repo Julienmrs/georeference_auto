@@ -22,6 +22,15 @@ session.headers["User-Agent"] = "pva-extract"
 
 
 def wfs_get(params, retries=4):
+    """ Effectue une requête WFS avec gestion des erreurs et des tentatives de réessai.
+
+    Args:
+        params (dict): Paramètres de la requête WFS.
+        retries (int, optional): Nombre de tentatives de réessai. par défaut 4.
+
+    Returns:
+        requests.Response: La réponse de la requête WFS.
+    """
     query = {"SERVICE": "WFS", "VERSION": "2.0.0"}
     query.update(params)
     for tentative in range(1, retries + 1):
@@ -37,6 +46,11 @@ def wfs_get(params, retries=4):
 
 
 def compte_result():
+    """compte le nombre d'extractions attendu pour savoir si certaines n'ont pas marché ainsi qu'avoir une idée du nombre total
+
+    Returns:
+        int: le nombre d'extractions attendues
+    """
     r = wfs_get({"REQUEST": "GetFeature", "TYPENAMES": LAYER, "RESULTTYPE": "hits"})
     root = ET.fromstring(r.content)
     value = root.attrib.get("numberMatched", "")
@@ -44,6 +58,14 @@ def compte_result():
 
 
 def fetch_page(start):
+    """ Récupère une page de résultats WFS à partir de la page indiquée.
+
+    Args:
+        start (int): L'index de départ de la page à récupérer.
+
+    Returns:
+        dict: Les données de la page récupérée.
+    """
     params = {
         "REQUEST": "GetFeature",
         "TYPENAMES": LAYER,
@@ -56,6 +78,11 @@ def fetch_page(start):
 
 
 def get_features():
+    """ Génère les features WFS en paginant les résultats
+
+    Yields:
+        dict: Les features WFS récupérées.
+    """
     total = compte_result()
     print(f"{total} objets annoncés")
 
@@ -73,6 +100,15 @@ def get_features():
 
 
 def get_year(properties):
+    """ Extrait l'année de la date du cliché à partir des propriétés d'une feature.
+
+
+    Args:
+        properties (dict): Les propriétés de la feature.
+
+    Returns:
+        str: L'année extraite de la date du cliché.
+    """
     match = re.match(r"\s*((?:18|19|20)\d{2})", str(properties.get("date_cliche") or ""))
     return match.group(1) if match else "inconnu"
 
@@ -90,6 +126,14 @@ def polygon_surf_km2(geometry):
 
 
 def polygon_centroid(geometry):
+    """Récupère les coordonnées du centroid de la geometry afin de stocker l'information
+
+    Args:
+        geometry (dict): La géométrie pour laquelle récupérer le centroid.
+
+    Returns:
+        tuple: Les coordonnées du centroid (longitude, latitude).
+    """
     if not geometry or geometry.get("type") != "Polygon":
         return None, None
     ring = geometry["coordinates"][0]
@@ -105,6 +149,14 @@ def polygon_centroid(geometry):
 
 
 def conversion(feature):
+    """ Convertit une feature WFS en un format GeoJSON avec les champs souhaités.
+
+    Args:
+        feature (dict): La feature WFS à convertir.
+
+    Returns:
+        dict: La feature au format GeoJSON attendue pour la bdd.
+    """
     p = feature.get("properties", {})
     image_id = p.get("image_identifier")
     if not image_id:
@@ -141,6 +193,7 @@ FOOTER = b"\n]}\n"
 
 
 class ecriture_par_annee:
+    """ Classe pour gérer l'écriture des features par année dans des fichiers GeoJSON distincts. """
     def __init__(self, output):
         self.output = Path(output)
         self.output.mkdir(parents=True, exist_ok=True)
