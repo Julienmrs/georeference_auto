@@ -6,7 +6,7 @@ fi
 
 bdd="$1"
 cdt_bord="${2:-true}"
-
+# Parcours des chantiers et calcul l'emprise de chaque cliché, puis export des coordonnées terrain et image afin de télécharger la bd ortho
 for cliche in `cat liste_cliches.txt`; do
     nomcliche=${cliche%.*} ;
     echo ${nomcliche} ;
