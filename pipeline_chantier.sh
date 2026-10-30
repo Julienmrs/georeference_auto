@@ -43,7 +43,7 @@ fi
 
 for chantier in $(cat "$liste_ok"); do
     echo "Traitement de ${chantier} "
-    bash "$ROOT_DIR/bash_traitement_serie2_export_points_gdalpam_affonly.sh" "${chantier}" "$dossier_traitement" "$methode"
+    bash "$ROOT_DIR/bash_traitement_serie2_export_points_gdalpam_affonly.sh" "${chantier}" "$methode" "$dossier_traitement" 
 done
 
 bash "$ROOT_DIR/bash_export.sh" "$dossier_traitement" "$methode"
