@@ -2,13 +2,21 @@ ROOT_DIR="$( cd "$(dirname $0)" && pwd )"
 
 # Le chantier a traiter est passe en argument
 chantier="$1"
-dossier_traitement="${2:-$ROOT_DIR/Echantillon_jp2_mars2025}"
+methode="${2:-tout}"
+dossier_traitement="${3:-$ROOT_DIR/Echantillon_jp2_mars2025}"
 
 if [ -z "${chantier}" ]; then
-    echo "Usage : $0 <nom_du_chantier>"
+    echo "Usage : $0 <nom_du_chantier> [akaub|superglue|tout] [dossier_de_traitement] "
     exit 1
 fi
- 
+
+case "$methode" in
+    akaub) faire_akaub=true; faire_spg=false ;;
+    superglue) faire_akaub=false; faire_spg=true ;;
+    tout) faire_akaub=true; faire_spg=true ;;
+    *) echo "Methode inconnue : ${methode} (attendu akaub, superglue ou tout)"; exit 1 ;;
+esac
+
 exes="$ROOT_DIR/OutilsLB"
 cd "$dossier_traitement/${chantier}" || exit 1
  
@@ -56,27 +64,39 @@ for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 	    cp ../${cliche}.warp10m.rot${irot}.tif ${cliche}.tif
 	    cp ../${cliche}.warp10m.rot${irot}.tfw ${cliche}.tfw
 
+	    if [ "$faire_akaub" = true ]; then
 	    #Methode HIATUS
 	    $ROOT_DIR/scripts-fromts/code-hiatus/MethodeAubry.LINUX  ${cliche}.BDOrtho.tif ${cliche}.BDOrtho.kaub --maxlocaux --SigmaInv $ROOT_DIR/scripts-fromts/code-hiatus/SigmaInvAubry.tif --Mu $ROOT_DIR/scripts-fromts/code-hiatus/MuAubry.tif > /dev/null
 	    $ROOT_DIR/scripts-fromts/code-hiatus/MethodeAubryAppariement.LINUX Points:Image ${cliche}.BDOrtho.kaub ${cliche}.tif ${cliche}.BDOrtho.-.${cliche}.resultpi  --SigmaInv $ROOT_DIR/scripts-fromts/code-hiatus/SigmaInvAubry.tif --Mu $ROOT_DIR/scripts-fromts/code-hiatus/MuAubry.tif --agarder 0.5 > /dev/null
 	    $ROOT_DIR/scripts-fromts/code-hiatus/RANSAC ${cliche}.BDOrtho.-.${cliche}.resultpi ${cliche}.BDOrtho.-.${cliche}.resultpif_rot${irot} > /dev/null
 		echo "$((end - start)) " >>"$ROOT_DIR/temps_cliche_kaub.txt"
-	    #Methode SuperGlue 
+	    fi
 
+	    if [ "$faire_spg" = true ]; then
+	    #Methode SuperGlue 
 	    python3 $ROOT_DIR/OutilsLB/SuperGlue/MetaSuperGlueTer.py ${cliche}.BDOrtho.tif ${cliche}.tif ${cliche}.BDOrtho.-.${cliche}.resultspg
 	    $ROOT_DIR/scripts-fromts/code-hiatus/RANSAC ${cliche}.BDOrtho.-.${cliche}.resultspg ${cliche}.BDOrtho.-.${cliche}.resultspgf_rot${irot} > /dev/null
 		echo "$((end - start))" >>"$ROOT_DIR/temps_cliche_spg.txt"
+	    fi
 
 	done
 
-	python3 $ROOT_DIR/OutilsLB/ChoixMeilleurApp.py ${cliche}.BDOrtho.-.${cliche}.resultpif_rot0  ${cliche}.BDOrtho.-.${cliche}.resultpif_rot1 ${cliche}.BDOrtho.-.${cliche}.resultpif_rot2 ${cliche}.BDOrtho.-.${cliche}.resultpif_rot3 > ${cliche}.BDOrtho.-.${cliche}.best
+	if [ "$faire_akaub" = true ]; then
+	    python3 $ROOT_DIR/OutilsLB/ChoixMeilleurApp.py ${cliche}.BDOrtho.-.${cliche}.resultpif_rot0  ${cliche}.BDOrtho.-.${cliche}.resultpif_rot1 ${cliche}.BDOrtho.-.${cliche}.resultpif_rot2 ${cliche}.BDOrtho.-.${cliche}.resultpif_rot3 > ${cliche}.BDOrtho.-.${cliche}.best
+	else
+	    python3 $ROOT_DIR/OutilsLB/ChoixMeilleurApp.py ${cliche}.BDOrtho.-.${cliche}.resultspgf_rot0  ${cliche}.BDOrtho.-.${cliche}.resultspgf_rot1 ${cliche}.BDOrtho.-.${cliche}.resultspgf_rot2 ${cliche}.BDOrtho.-.${cliche}.resultspgf_rot3 > ${cliche}.BDOrtho.-.${cliche}.best
+	fi
 	irotbest=0
 	for a in `cat ${cliche}.BDOrtho.-.${cliche}.best` ; do
 	    irotbest=${a}
 	done
 	echo ${irotbest} > ${cliche}.rotbest.txt
+	if [ "$faire_spg" = true ]; then
 	cp ${cliche}.BDOrtho.-.${cliche}.resultspgf_rot${irotbest} ${cliche}.BDOrtho.-.${cliche}.resultspgf
+	fi
+	if [ "$faire_akaub" = true ]; then
 	cp ${cliche}.BDOrtho.-.${cliche}.resultpif_rot${irotbest} ${cliche}.BDOrtho.-.${cliche}.resultpif
+	fi
 	cp ../${cliche}.warp10m.rot${irotbest}.tif ${cliche}.tif
 	cp ../${cliche}.warp10m.rot${irotbest}.tfw ${cliche}.tfw
 	cp ../${cliche}.tfw_rot${irotbest} ../${cliche}.tfw
@@ -84,19 +104,24 @@ for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 	cp ../${cliche}.warp10m.rot${irotbest}.tfw ../${cliche}.warp10m.tfw
 	python3 $ROOT_DIR/OutilsLB/Creer_PAM_from_im_terr.py ../${cliche}.coordim_rot${irotbest} ../${cliche}.L93.coordL93.txt ../${cliche}.tif.aux.xml
 	
+	if [ "$faire_akaub" = true ]; then
 	#Methode HIATUS
 	$ROOT_DIR/OutilsLB/LB.LINUX CalculTransfo2D:Affinite ${cliche}.BDOrtho.-.${cliche}.resultpif ${cliche}.aff.modelekaub.txt > /dev/null
 	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelekaub.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affkaub.txt
 	$ROOT_DIR/OutilsLB/LB.LINUX WarpHomographie --tfw ${cliche}.modelefinal.affkaub.txt --image ../${cliche}.tif --image_sortie ${cliche}.affkaub.tif --modele_inverse
 	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo:tfw ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelekaub.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affkaub.tfw 
 	python3 $ROOT_DIR/OutilsLB/Creer_PAM_from_im_tfw.py ../${cliche}.coordim_rot0 ${cliche}.modelefinal.affkaub.tfw ${cliche}.modelefinal.affkaub.tif.aux.xml ; #ln -s ../${cliche}.tif ${cliche}.modelefinal.affkaub.tif ; gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 ${cliche}.modelefinal.affkaub.tif ${cliche}.modelefinal.affkaub.tif.vrt ; gdal_translate -co COMPRESS=DEFLATE ${cliche}.modelefinal.affkaub.tif.vrt ${cliche}.modelefinal.affkaub.tif ; rm 
+	fi
+	if [ "$faire_spg" = true ]; then
 	#Methode SuperGlue
 	$ROOT_DIR/OutilsLB/LB.LINUX CalculTransfo2D:Affinite ${cliche}.BDOrtho.-.${cliche}.resultspgf ${cliche}.aff.modelespg.txt > /dev/null
 	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelespg.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affspg.txt	
 	$ROOT_DIR/OutilsLB/LB.LINUX WarpHomographie --tfw ${cliche}.modelefinal.affspg.txt --image ../${cliche}.tif --image_sortie ${cliche}.affspg.tif --modele_inverse
 	$ROOT_DIR/OutilsLB/LB.LINUX EnchainementTransfo:tfw ../${cliche}.tfw ${cliche}.tfw ${cliche}.aff.modelespg.txt ${cliche}.BDOrtho.tfw  ${cliche}.modelefinal.affspg.tfw
 	python3 $ROOT_DIR/OutilsLB/Creer_PAM_from_im_tfw.py ../${cliche}.coordim_rot0 ${cliche}.modelefinal.affspg.tfw ${cliche}.modelefinal.affspg.tif.aux.xml ; #ln -s ../${cliche}.tif ${cliche}.modelefinal.affspg.tif ; gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 ${cliche}.modelefinal.affspg.tif ${cliche}.modelefinal.affspg.tif.vrt ; gdal_translate -co COMPRESS=DEFLATE ${cliche}.modelefinal.affspg.tif.vrt ${cliche}.modelefinal.affspg.tif ; rm 
+	fi
 
+	if [ "$faire_akaub" = true ]; then
 	#Pour export points
 	$ROOT_DIR/OutilsLB/LB.LINUX ScindeResult ${cliche}.BDOrtho.-.${cliche}.resultpif ${cliche}.BDOrtho.ptskaub ${cliche}.ptskaub
 	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueAffinitePts --tfw ${cliche}.BDOrtho.tfw --pts_entree ${cliche}.BDOrtho.ptskaub --pts_sortie ${cliche}.BDOrtho.ptskaub
@@ -107,7 +132,9 @@ for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 	$ROOT_DIR/OutilsLB/LB.LINUX Txt2GeoJson ${cliche}.ptsreproj.aff.modelekaub ${cliche}.ptsreproj.aff.modelekaub.geojson
 	
 	$ROOT_DIR/OutilsLB/LB.LINUX Txt2GeoJson ${cliche}.BDOrtho.ptskaub ${cliche}.BDOrtho.ptskaub.geojson
+	fi
 
+	if [ "$faire_spg" = true ]; then
 	#Pour export points  reprojection repere terrain - original -- bd ortho
 	$ROOT_DIR/OutilsLB/LB.LINUX ScindeResult ${cliche}.BDOrtho.-.${cliche}.resultspgf ${cliche}.BDOrtho.ptsspg ${cliche}.ptsspg
 	$ROOT_DIR/OutilsLB/LB.LINUX AppliqueAffinitePts --tfw ${cliche}.BDOrtho.tfw --pts_entree ${cliche}.BDOrtho.ptsspg --pts_sortie ${cliche}.BDOrtho.ptsspg
@@ -119,8 +146,8 @@ for cliche in `cat $dossier_traitement/liste_cliches.txt` ; do
 	$ROOT_DIR/OutilsLB/LB.LINUX Txt2GeoJson ${cliche}.ptsreproj.aff.modelespg ${cliche}.ptsreproj.aff.modelespg.geojson	
 
 	$ROOT_DIR/OutilsLB/LB.LINUX Txt2GeoJson ${cliche}.BDOrtho.ptsspg ${cliche}.BDOrtho.ptsspg.geojson
+	fi
 
 	
 
 done
-

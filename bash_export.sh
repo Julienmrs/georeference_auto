@@ -1,13 +1,22 @@
 if [ -z "$1" ]; then
-    echo "Usage : $0 <dossier_de_traitement>"
+    echo "Usage : $0 <dossier_de_traitement> [akaub|superglue|tout]"
     exit 1
 fi
 dossier_traitement="$1"
+methode="${2:-tout}"
+
+case "$methode" in
+    akaub) faire_akaub=true; faire_spg=false ;;
+    superglue) faire_akaub=false; faire_spg=true ;;
+    tout) faire_akaub=true; faire_spg=true ;;
+    *) echo "Methode inconnue : ${methode} (attendu akaub, superglue ou tout)"; exit 1 ;;
+esac
 
 timestart=$SECONDS
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$dossier_traitement"
 
+if [ "$faire_akaub" = true ]; then
 mkdir final
 for chantier in `cat liste_chantiers_ok.txt`; do
     echo ${chantier}
@@ -20,7 +29,9 @@ for chantier in `cat liste_chantiers_ok.txt`; do
 	gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 final/${chantier}/${cliche}.tif final/${chantier}/${cliche}.vrt
     done
 done
+fi
 	
+if [ "$faire_spg" = true ]; then
 mkdir final_spg
 for chantier in `cat liste_chantiers_ok.txt`; do
     echo ${chantier}
@@ -28,11 +39,12 @@ for chantier in `cat liste_chantiers_ok.txt`; do
     for cliche in `cat ${chantier}/liste_cliches.txt`; do
 	echo ${cliche}
 	cp ${chantier}/travail_ssech10/${cliche}.modelefinal.affspg.tif.aux.xml final_spg/${chantier}/${cliche}.tif.aux.xml
-	cp final/${chantier}/${cliche}.tif final_spg/${chantier}/${cliche}.tif
+	cp ${chantier}/${cliche}.tif final_spg/${chantier}/${cliche}.tif
 	gdaladdo -r average -ro final_spg/${chantier}/${cliche}.tif 8 16
 	gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 final_spg/${chantier}/${cliche}.tif final_spg/${chantier}/${cliche}.vrt 
     done
 done
+fi
 
 mkdir initial
 for chantier in `cat liste_chantiers_ok.txt`; do
@@ -41,7 +53,7 @@ for chantier in `cat liste_chantiers_ok.txt`; do
     for cliche in `cat ${chantier}/liste_cliches.txt`; do
 	echo ${cliche}
 	cp ${chantier}/${cliche}.tif.aux.xml initial/${chantier}/${cliche}.tif.aux.xml
-	cp final/${chantier}/${cliche}.tif initial/${chantier}/${cliche}.tif
+	cp ${chantier}/${cliche}.tif initial/${chantier}/${cliche}.tif
 	gdaladdo -r average -ro initial/${chantier}/${cliche}.tif 8 16
 	gdalwarp -overwrite -r bilinear -t_srs EPSG:2154 -order 1 initial/${chantier}/${cliche}.tif initial/${chantier}/${cliche}.vrt 
     done

@@ -15,6 +15,8 @@ cdt_bord=true  # true pour detecter les bords de cliche et ne pas prendre les po
 
 nettoyage=true # true pour supprimer les dossiers de traitement apres export, false pour garder les dossiers de traitement
 
+methode="tout" # akaub, superglue ou tout pour avoir les deux methodes, par defaut tout
+
 #---------------Chaine--------------------------------------
 echo "Root dir: $ROOT_DIR"
 echo "Fichier a traiter: $fichier_a_traiter"
@@ -50,16 +52,16 @@ fi
 #-----------------Traitement des cliches-------------------
 for chantier in $(cat "$liste_ok"); do
     echo "Traitement de ${chantier} "
-    bash "$ROOT_DIR/bash_traitement_serie2_export_points_gdalpam_affonly.sh" "${chantier}"
+    bash "$ROOT_DIR/bash_traitement_serie2_export_points_gdalpam_affonly.sh" "${chantier}" "$methode"
 done
 
-bash "$ROOT_DIR/bash_export.sh" "$dossier_traitement"
+bash "$ROOT_DIR/bash_export.sh" "$dossier_traitement" "$methode"
 
 ###-----------------Version 5m-------------------
 # bash "$ROOT_DIR/bash_traitement_serie2_export_points_gdalpam_affonly_5m.sh"
 # bash "$ROOT_DIR/bash_export_5m.sh"
 
 #-----------------Nettoyage-----------------
-if [ "$nettoyage" = true ]; then
-    bash "$ROOT_DIR/cleanup.sh" "$dossier_traitement"
-fi
+# if [ "$nettoyage" = true ]; then
+#     bash "$ROOT_DIR/cleanup.sh" "$dossier_traitement"
+# fi
