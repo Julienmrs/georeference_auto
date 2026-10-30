@@ -61,7 +61,7 @@ bash "$ROOT_DIR/bash_export.sh" "$dossier_traitement" "$methode"
 # bash "$ROOT_DIR/bash_traitement_serie2_export_points_gdalpam_affonly_5m.sh"
 # bash "$ROOT_DIR/bash_export_5m.sh"
 
-#-----------------Nettoyage-----------------
-# if [ "$nettoyage" = true ]; then
-#     bash "$ROOT_DIR/cleanup.sh" "$dossier_traitement"
-# fi
+# -----------------Nettoyage-----------------
+if [ "$nettoyage" = true ]; then
+    bash "$ROOT_DIR/cleanup.sh" "$dossier_traitement"
+fi
