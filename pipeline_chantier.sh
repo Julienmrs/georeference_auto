@@ -7,6 +7,10 @@ liste="$1"
 nom_chantier="$2"
 seuil="${3:-500}"
 
+cdt_bord=true
+nettoyage=true
+methode="tout"
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
@@ -29,7 +33,7 @@ bash "$ROOT_DIR/download.sh" \
 
 python3 "$ROOT_DIR/verif_chantier.py" "$bdd" "$seuil" "$dossier_traitement"
 
-bash "$ROOT_DIR/bash_processus.sh" "$bdd" "$dossier_traitement"
+bash "$ROOT_DIR/bash_processus.sh" "$bdd" "$dossier_traitement" "$cdt_bord"
 
 liste_ok="$dossier_traitement/liste_chantiers_ok.txt"
 if [ ! -s "$liste_ok" ]; then
@@ -39,7 +43,11 @@ fi
 
 for chantier in $(cat "$liste_ok"); do
     echo "Traitement de ${chantier} "
-    bash "$ROOT_DIR/bash_traitement_serie2_export_points_gdalpam_affonly.sh" "${chantier}"
+    bash "$ROOT_DIR/bash_traitement_serie2_export_points_gdalpam_affonly.sh" "${chantier}" "$dossier_traitement" "$methode"
 done
 
-bash "$ROOT_DIR/bash_export.sh" "$dossier_traitement"
+bash "$ROOT_DIR/bash_export.sh" "$dossier_traitement" "$methode"
+
+if [ "$nettoyage" = true ]; then
+    bash "$ROOT_DIR/cleanup.sh" "$dossier_traitement"
+fi
