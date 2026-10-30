@@ -1,0 +1,24 @@
+        body {
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        #carte {
+            height: 85vh;
+        }
+
+        #panneau {
+            padding: 10px;
+        }
+
+        .leaflet-tooltip {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            cursor: text !important;
+            pointer-events: auto !important;
+        }
+
+        .leaflet-tooltip-pane {
+            pointer-events: auto !important;
+        }
